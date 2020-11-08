@@ -1,0 +1,34 @@
+CC=g++
+CXXFLAGS=-O3 -std=c++11 -Wall -pedantic -D_GNU_SOURCE -Wno-format -Wno-long-long -I.
+
+LDFLAGS=-lpthread
+
+MAKEDEPEND=${CC} -MM
+PROGRAM=asn1_ber_server
+
+OBJS = ${PROGRAM}.o asn1/ber/server.o net/tcp/receiver.o net/tcp/worker.o \
+			 net/tcp/connections.o net/tcp/connection.o net/tcp/listeners.o \
+			 net/socket/address.o asn1/ber/decoder.o asn1/ber/value.o asn1/ber/tag.o \
+			 string/buffer.o
+
+DEPS:= ${OBJS:%.o=%.d}
+
+all: $(PROGRAM)
+
+${PROGRAM}: ${OBJS}
+	${CC} ${OBJS} ${LIBS} -o $@ ${LDFLAGS}
+
+clean:
+	rm -f ${PROGRAM} ${OBJS} ${DEPS}
+
+${OBJS} ${DEPS} ${PROGRAM} : Makefile.${PROGRAM}
+
+.PHONY : all clean
+
+%.d : %.cpp
+	${MAKEDEPEND} ${CXXFLAGS} $< -MT ${@:%.d=%.o} > $@
+
+%.o : %.cpp
+	${CC} ${CXXFLAGS} -c -o $@ $<
+
+-include ${DEPS}
