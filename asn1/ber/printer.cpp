@@ -365,16 +365,21 @@ void asn1::ber::printer::print_utc_time(time_t val, size_t depth) const
 
   indent(depth);
 
+#if !defined(_WIN32)
   struct tm tm;
   gmtime_r(&val, &tm);
+  const struct tm* const tmp = &tm;
+#else
+  const struct tm* const tmp = gmtime(&val);
+#endif
 
   printf("    %04u/%02u/%02u %02u:%02u:%02u (UTC)\n\n",
-         1900 + tm.tm_year,
-         1 + tm.tm_mon,
-         tm.tm_mday,
-         tm.tm_hour,
-         tm.tm_min,
-         tm.tm_sec);
+         1900 + tmp->tm_year,
+         1 + tmp->tm_mon,
+         tmp->tm_mday,
+         tmp->tm_hour,
+         tmp->tm_min,
+         tmp->tm_sec);
 }
 
 void asn1::ber::printer::print_generalized_time(const struct timeval& val,
@@ -385,26 +390,32 @@ void asn1::ber::printer::print_generalized_time(const struct timeval& val,
 
   indent(depth);
 
+#if !defined(_WIN32)
   struct tm tm;
   gmtime_r(&val.tv_sec, &tm);
+  const struct tm* const tmp = &tm;
+#else
+  const time_t t = val.tv_sec;
+  const struct tm* const tmp = gmtime(&t);
+#endif
 
   if (val.tv_usec != 0) {
     printf("    %04u/%02u/%02u %02u:%02u:%02u.%06u (UTC)\n\n",
-           1900 + tm.tm_year,
-           1 + tm.tm_mon,
-           tm.tm_mday,
-           tm.tm_hour,
-           tm.tm_min,
-           tm.tm_sec,
+           1900 + tmp->tm_year,
+           1 + tmp->tm_mon,
+           tmp->tm_mday,
+           tmp->tm_hour,
+           tmp->tm_min,
+           tmp->tm_sec,
            static_cast<unsigned>(val.tv_usec));
   } else {
     printf("    %04u/%02u/%02u %02u:%02u:%02u (UTC)\n\n",
-           1900 + tm.tm_year,
-           1 + tm.tm_mon,
-           tm.tm_mday,
-           tm.tm_hour,
-           tm.tm_min,
-           tm.tm_sec);
+           1900 + tmp->tm_year,
+           1 + tmp->tm_mon,
+           tmp->tm_mday,
+           tmp->tm_hour,
+           tmp->tm_min,
+           tmp->tm_sec);
   }
 }
 

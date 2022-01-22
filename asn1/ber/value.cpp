@@ -2,6 +2,10 @@
 
 #define IS_DIGIT(x) (((x) >= '0') && ((x) <= '9'))
 
+#if defined(_WIN32)
+  #define timegm _mkgmtime
+#endif
+
 bool asn1::ber::value::decode_boolean(bool& val) const
 {
   if ((_M_primitive) && (_M_length == 1)) {
@@ -146,7 +150,7 @@ bool asn1::ber::value::decode_utc_time(time_t& val) const
 bool asn1::ber::value::decode_generalized_time(struct timeval& val) const
 {
   if ((_M_primitive) &&
-      (_M_length >= 15) &&
+      (_M_length >= 14) &&
       (_M_length <= 22) &&
       (IS_DIGIT(_M_data[0])) &&
       (IS_DIGIT(_M_data[1])) &&
@@ -162,7 +166,7 @@ bool asn1::ber::value::decode_generalized_time(struct timeval& val) const
       (IS_DIGIT(_M_data[11])) &&
       (IS_DIGIT(_M_data[12])) &&
       (IS_DIGIT(_M_data[13])) &&
-      (_M_data[_M_length - 1] == 'Z')) {
+      ((_M_data[_M_length - 1] == 'Z') || (IS_DIGIT(_M_data[_M_length - 1])))) {
     const unsigned year = ((_M_data[0] - '0') * 1000) +
                           ((_M_data[1] - '0') * 100) +
                           ((_M_data[2] - '0') * 10) +
@@ -188,21 +192,36 @@ bool asn1::ber::value::decode_generalized_time(struct timeval& val) const
               if (second <= 59) {
                 unsigned microsecond = 0;
 
-                if (_M_length > 15) {
-                  if ((_M_length >= 17) && (_M_data[14] == '.')) {
-                    unsigned n = 1000000;
+                if (_M_length == 15) {
+                  if (_M_data[14] != 'Z') {
+                    return false;
+                  }
+                } else if (_M_length > 15) {
+                  if (_M_data[14] == '.') {
+                    const size_t ndigits = (_M_data[_M_length - 1] == 'Z') ?
+                                             _M_length - 1 - 15 :
+                                             _M_length - 15;
 
-                    const size_t max = _M_length - 1;
-                    for (size_t i = 15; i < max; i++) {
-                      if (IS_DIGIT(_M_data[i])) {
-                        microsecond = (microsecond * 10) + (_M_data[i] - '0');
-                        n /= 10;
-                      } else {
-                        return false;
+                    if ((ndigits >= 1) && (ndigits <= 6)) {
+                      unsigned n = 1000000;
+
+                      const size_t max = (_M_data[_M_length - 1] == 'Z') ?
+                                           _M_length - 1 :
+                                           _M_length;
+
+                      for (size_t i = 15; i < max; i++) {
+                        if (IS_DIGIT(_M_data[i])) {
+                          microsecond = (microsecond * 10) + (_M_data[i] - '0');
+                          n /= 10;
+                        } else {
+                          return false;
+                        }
                       }
-                    }
 
-                    microsecond *= n;
+                      microsecond *= n;
+                    } else {
+                      return false;
+                    }
                   } else {
                     return false;
                   }
@@ -217,7 +236,9 @@ bool asn1::ber::value::decode_generalized_time(struct timeval& val) const
                 tm.tm_sec = second;
                 tm.tm_isdst = -1;
 
-                val.tv_sec = timegm(&tm);
+                val.tv_sec = (_M_data[_M_length - 1] == 'Z') ? timegm(&tm) :
+                                                               mktime(&tm);
+
                 val.tv_usec = microsecond;
 
                 return true;
