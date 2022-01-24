@@ -18,7 +18,7 @@ ${PROGRAM}: ${OBJS}
 clean:
 	del ${PROGRAM}.exe ${OBJS} ${DEPS}
 
-${OBJS} ${DEPS} ${PROGRAM} : Makefile.${PROGRAM}
+${OBJS} ${DEPS} ${PROGRAM} : Makefile.${PROGRAM}_win
 
 .PHONY : all clean
 
