@@ -126,6 +126,8 @@ int process_file(const char* filename)
 
           CloseHandle(hMapFile);
         }
+      } else {
+        fprintf(stderr, "Error creating file mapping.\n");
       }
 
       CloseHandle(hFile);
