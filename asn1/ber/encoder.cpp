@@ -454,13 +454,13 @@ asn1::ber::encoder::value::encode_generalized_time(tag_class tc,
   // Encode identifier octets.
   encode_identifier_octets(tc, true, tn);
 
-#if !defined(_WIN32)
   struct tm tm;
+
+#if !defined(_WIN32)
   gmtime_r(&tv.tv_sec, &tm);
-  const struct tm* const tmp = &tm;
 #else
-  const time_t t = tv.tv_sec;
-  const struct tm* const tmp = gmtime(&t);
+  const time_t sec = tv.tv_sec;
+  gmtime_s(&tm, &sec);
 #endif
 
   // If there are microseconds...
@@ -468,23 +468,20 @@ asn1::ber::encoder::value::encode_generalized_time(tag_class tc,
     _M_valuelen = snprintf(reinterpret_cast<char*>(_M_value.v),
                            sizeof(_M_value.v),
                            "%04u%02u%02u%02u%02u%02u.",
-                           1900 + tmp->tm_year,
-                           1 + tmp->tm_mon,
-                           tmp->tm_mday,
-                           tmp->tm_hour,
-                           tmp->tm_min,
-                           tmp->tm_sec);
+                           1900 + tm.tm_year,
+                           1 + tm.tm_mon,
+                           tm.tm_mday,
+                           tm.tm_hour,
+                           tm.tm_min,
+                           tm.tm_sec);
 
     unsigned usec = tv.tv_usec;
     unsigned div = 100000;
 
     while (usec != 0) {
-      if ((usec / div) != 0) {
-        _M_value.v[_M_valuelen++] = '0' + (usec / div);
+      _M_value.v[_M_valuelen++] = '0' + (usec / div);
 
-        usec %= div;
-      }
-
+      usec %= div;
       div /= 10;
     }
 
@@ -493,12 +490,12 @@ asn1::ber::encoder::value::encode_generalized_time(tag_class tc,
     _M_valuelen = snprintf(reinterpret_cast<char*>(_M_value.v),
                            sizeof(_M_value.v),
                            "%04u%02u%02u%02u%02u%02uZ",
-                           1900 + tmp->tm_year,
-                           1 + tmp->tm_mon,
-                           tmp->tm_mday,
-                           tmp->tm_hour,
-                           tmp->tm_min,
-                           tmp->tm_sec);
+                           1900 + tm.tm_year,
+                           1 + tm.tm_mon,
+                           tm.tm_mday,
+                           tm.tm_hour,
+                           tm.tm_min,
+                           tm.tm_sec);
   }
 
   // Encode length.
